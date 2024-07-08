@@ -1,0 +1,7 @@
+echo "# DSE6311CapstoneMichaelsSquared" >> README.md
+git init
+git add README.md
+git commit -m "first commit"
+git branch -M main
+git remote add origin https://github.com/Ethanrm04/DSE6311CapstoneMichaelsSquared.git
+git push -u origin main
