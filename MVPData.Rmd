@@ -1,0 +1,182 @@
+---
+title: "Untitled"
+author: "Ethan Michaels"
+date: "2024-07-06"
+output: pdf_document
+---
+
+```{r}
+library(dplyr)
+library(randomForest)
+library(caret)
+```
+
+```{r}
+MVPAL <- read.csv("MVPALContenders.csv", header = TRUE)
+MVPNL <- read.csv("MVPNLContenders.csv", header = TRUE)
+MVPMLB <- read.csv("MVPMLBWinners.csv", header = TRUE)
+Batting2023 <- read.csv("BattingData2.csv", header = TRUE)
+```
+
+```{r}
+MVPAL$Winners <- ifelse(MVPAL$Rank==1,1,0)
+MVPNL$Winners <- ifelse(MVPNL$Rank==1,1,0)
+MVPMLB$Winners <- ifelse(MVPMLB$Rank==1,1,0)
+```
+
+```{r}
+MVPAL$Share <- as.numeric(sub("%", "", MVPAL$Share,fixed=TRUE))/100
+MVPNL$Share <- as.numeric(sub("%", "", MVPNL$Share,fixed=TRUE))/100
+MVPMLB$Share <- as.numeric(sub("%", "", MVPMLB$Share,fixed=TRUE))/100
+```
+
+```{r}
+Batting2023$BA <- (Batting2023$H/Batting2023$AB)
+```
+
+#Removing all Observations with less than 150 AB (AKA Pitchers)
+```{r}
+MVPAL <- subset(MVPAL, AB>150)
+MVPNL <- subset(MVPNL, AB>150)
+MVPMLB <- subset(MVPMLB, AB>150)
+```
+
+
+```{r}
+MVPALNL <- dplyr::bind_rows(MVPAL,MVPNL)
+```
+
+```{r}
+MVPMLB <- MVPMLB[order(MVPMLB$Year), ]
+```
+
+
+```{r}
+MVPALContendersTest <- MVPAL[c(1:21,34)]
+
+MVPNLContendersTest <- MVPNL[c(1:21,34)]
+
+MVPALNLContendersTest <- MVPALNL[c(1:21,34)]
+
+```
+
+#Test and Train
+
+```{r}
+randomYear <- sample(1956:2022,1)
+```
+
+```{r}
+train.data <- subset(MVPALContendersTest, Year!=randomYear)
+test.data <- subset(MVPALContendersTest, Year==randomYear)
+```
+
+#Using OPS as SLG and OBP make OPS
+
+```{r}
+MVP.lm.fit <- lm(Share ~WAR+HR+RBI+SB+BA+OPS, data=train.data)
+```
+
+```{r}
+summary(MVP.lm.fit)
+```
+```{r}
+predict(MVP.lm.fit,newdata=test.data)
+```
+
+#Random Forest
+
+```{r}
+set.seed(5231)
+
+
+rf.model <- randomForest(Share ~WAR+HR+RBI+SB+BA+OPS,data=train.data )
+```
+
+```{r}
+rf.model
+```
+
+```{r}
+which.min(rf.model$mse)
+```
+
+```{r}
+sqrt(rf.model$mse[which.min(rf.model$mse)])
+```
+#The model that produced the lowest test mean square error used 381 tree. We can also see that the rmse of that model was .20. We can think of this as the average difference between the predicted and actual observed
+```{r}
+plot(rf.model)
+```
+#creates a plot that displays the importance of each predictor variable
+```{r}
+varImpPlot(rf.model)
+```
+#X axis displays the average increase in node purity of the regression tree on splitting on various predictors
+
+```{r}
+predict(rf.model,newdata=test.data)
+```
+#Based on the values of the predict variable , the fitted random forest model predicts that player 37 will have 50.8% of the share votes for MVP. 
+
+
+
+
+```{r}
+MVPALContendersTest$predicted <- predict(rf.model,newdata=MVPALContendersTest)
+```
+
+```{r}
+MVPALContendersTest.mod <- MVPALContendersTest %>%
+  slice_max(predicted,by=c(Year))
+```
+
+
+#Lets run Neural Network, Gradient Boosting Machines?, PCR
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
