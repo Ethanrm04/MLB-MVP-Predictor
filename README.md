@@ -7,8 +7,10 @@ Predicting MLB MVP and Cy Young Winners
 
 # Brief Background
 
-  In the world of sports, players aim to be the best of the best. Whether that is winning the end of the year championship (World Series, Super Bowl, etc.) or the individual awards. In most cases the most important individual award is the league’s Most Valuable Player. This leads to the question of what combination of player performance metrics best predicts the winner of the Major League Baseball’s (MLB) Most Valuable Player (MVP) award.
+	In the world of sports, players aim to be the best of the best. Whether that is winning the end of the year championship (World Series, Super Bowl, etc.) or the individual awards. In most cases the most important individual award is the league’s Most Valuable Player. This leads to the question of what combination of player performance metrics best predicts the winner of the Major League Baseball’s (MLB) Most Valuable Player (MVP) award.
+  
 	Within this project we hypothesize that a player’s offensive performance metrics (batting average, home runs, runs batted in, and on-base percentage) combined with advanced statistics (such as Wins Above Replacement, WAR) are strong predictors of winning the American League’s and National League’s Most Valuable Player award.
+ 
 	We predict that players with higher offensive performance metrics and superior advanced statistics are more likely to win the American League (AL) or National League (NL) Most Valuable Player award. By leveraging these metrics, it is possible to accurately forecast MVP award winners with a high degree of accuracy.
 
 
