@@ -55,8 +55,8 @@ Description: Team that the player played on that year of voting.
 
 Description: Major League baseball is split equally into 2 leagues. League indicates which league the specific team was a part of.
 Options:
--AL: American League
--NL: National League
+- AL: American League
+- NL: National League
 
 **Year**
 
@@ -77,11 +77,11 @@ Description: The vote points divided by most points possible. Unanimous choice i
 **WAR**
 
 Description: * *Wins Above Replacement* *. A single number that presents the number of wins the player added to the team above what a replacement player from the minor leagues would add.
--8+ is MVP Quality
--5+ is All-Star Quality 
--2+ is Starter
--0-2 is Reserve
--< 0 is Replacement Level
+- 8+ is MVP Quality
+- 5+ is All-Star Quality 
+- 2+ is Starter
+- 0-2 is Reserve
+- < 0 is Replacement Level
 
 **G** 
 
@@ -122,15 +122,15 @@ Description: * *Batting Average* *. H / AB
 **OBP**
 
 Description: * *On-base Percentage* *. (H + BB + HBP) / (AB + BB + HBP + SF)
--HBP: Hit By Pitch
--SF: Sacrifice Fly hit
+- HBP: Hit By Pitch
+- SF: Sacrifice Fly hit
 
 **SLG**
 
 Description: * *Slugging* *. Total Bases divided by At Bats OR (1B + 2*2B + 3*3B + 4*HR) / AB
--1B: Single
--2B: Double
--3B: Triple
+- 1B: Single
+- 2B: Double
+- 3B: Triple
 
 **OPS**
 
@@ -140,6 +140,6 @@ Description: * *On-base Plus Slugging* *. One-Base Percentage + Slugging Percent
 
 Description: Indicates who won the MVP Award that season.
 Options:
--1: Won
--0: Lost
+- 1: Won
+- 0: Lost
 
