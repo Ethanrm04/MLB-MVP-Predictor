@@ -76,7 +76,7 @@ Description: The vote points divided by most points possible. Unanimous choice i
 
 **WAR**
 
-Description: * *Wins Above Replacement* *. A single number that presents the number of wins the player added to the team above what a replacement player from the minor leagues would add.
+Description: *Wins Above Replacement*. A single number that presents the number of wins the player added to the team above what a replacement player from the minor leagues would add.
 - 8+ is MVP Quality
 - 5+ is All-Star Quality 
 - 2+ is Starter
@@ -85,56 +85,56 @@ Description: * *Wins Above Replacement* *. A single number that presents the num
 
 **G** 
 
-Description: * *Games Played* *. The number of games played by the player in that specific season.
+Description: *Games Played*. The number of games played by the player in that specific season.
 
 **AB**
 
-Description: * *At Bats* *. The number of at bats the player had in the specific season.
+Description: *At Bats*. The number of at bats the player had in the specific season.
 
 **R**
 
-Description: * *Runs Scored* *. The amount of times the player has scored during that season.
+Description: *Runs Scored*. The amount of times the player has scored during that season.
 
 **H**
 
-Description: * *Hits* *. The number of hits the player had during that season.
+Description: *Hits*. The number of hits the player had during that season.
 
 **HR**
 
-Description: * *Home Runs* *. Number of home runs the player hit during that season.
+Description: *Home Runs*. Number of home runs the player hit during that season.
 
 **RBI**
 
-Description: * *Runs Batted In* *. Is the number of times where the result of the player’s plate appearance is a run being scored during that season.
+Description: *Runs Batted In*. Is the number of times where the result of the player’s plate appearance is a run being scored during that season.
 
 **SB**
 
-Description: * *Stolen Bases* *. THe number of stolen bases by the player during that season.
+Description: *Stolen Bases*. THe number of stolen bases by the player during that season.
 
 **BB**
 
-Description: * *Bases on Balls/Walks* *. The number of times the player has been walked during their plate appearance over the course of the season.
+Description: *Bases on Balls/Walks*. The number of times the player has been walked during their plate appearance over the course of the season.
 
 **BA**
 
-Description: * *Batting Average* *. H / AB 
+Description: *Batting Average*. H / AB 
 
 **OBP**
 
-Description: * *On-base Percentage* *. (H + BB + HBP) / (AB + BB + HBP + SF)
+Description: *On-base Percentage*. (H + BB + HBP) / (AB + BB + HBP + SF)
 - HBP: Hit By Pitch
 - SF: Sacrifice Fly hit
 
 **SLG**
 
-Description: * *Slugging* *. Total Bases divided by At Bats OR (1B + 2*2B + 3*3B + 4*HR) / AB
+Description: *Slugging*. Total Bases divided by At Bats OR (1B + 2*2B + 3*3B + 4*HR) / AB
 - 1B: Single
 - 2B: Double
 - 3B: Triple
 
 **OPS**
 
-Description: * *On-base Plus Slugging* *. One-Base Percentage + Slugging Percentage.
+Description: *On-base Plus Slugging*. One-Base Percentage + Slugging Percentage.
 
 **Winners**
 
