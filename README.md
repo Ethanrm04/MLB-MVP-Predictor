@@ -127,7 +127,7 @@ Description: *On-base Percentage*. (H + BB + HBP) / (AB + BB + HBP + SF)
 
 **SLG**
 
-Description: *Slugging*. Total Bases divided by At Bats OR (1B + 2*2B + 3*3B + 4*HR) / AB
+Description: *Slugging*. Total Bases divided by At Bats OR (1B + (2  * 2B) + (3  * 3B) + (4  * HR)) / AB
 - 1B: Single
 - 2B: Double
 - 3B: Triple
