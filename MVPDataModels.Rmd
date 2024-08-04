@@ -1,0 +1,234 @@
+---
+title: "MVPDataModels"
+author: "Ethan Michaels"
+date: "2024-07-26"
+output: pdf_document
+---
+
+```{r}
+library(dplyr)
+library(tidyverse)
+library(randomForest)
+library(caret)
+library(car)
+library(infotheo)
+library(pls)
+library(ggplot2)
+library(olsrr)
+```
+
+```{r}
+MVPMLB <- read.csv("MVPALNLContendersModified.csv", header = TRUE)
+Batting2023 <- read.csv("BattingData2.csv", header = TRUE)
+```
+
+```{r}
+MVPAL <- MVPMLB[MVPMLB$League=="AL",]
+MVPNL <- MVPMLB[MVPMLB$League=="NL",]
+MVPWinners <- MVPMLB[MVPMLB$Winners==1,]
+MVPLosers<- MVPMLB[MVPMLB$Winners==0,]
+```
+
+#Descriptive Statistics 
+```{r}
+teamMVP <- MVPWinners %>% group_by(Tm) %>% count()
+teamContenders <- MVPMLB %>% group_by(Tm) %>% count()
+
+```
+
+```{r}
+summary(MVPNL)
+```
+
+```{r}
+summary(MVPAL)
+
+```
+
+```{r}
+summary(MVPMLB)
+
+```
+```{r}
+summary(MVPWinners)
+```
+
+```{r}
+summary(MVPLosers)
+```
+
+
+#Correlation on Share 
+```{r}
+cor(MVPMLB[,c('Share','WAR','G','AB','R','H','HR','RBI','SB','BB','BA','OBP','SLG','OPS')])
+```
+
+```{r}
+cor(MVPAL[,c('Share','WAR','G','AB','R','H','HR','RBI','SB','BB','BA','OBP','SLG','OPS')])
+```
+
+```{r}
+mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,9]))
+mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,10]))
+mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,11]))
+mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,12]))
+mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,13]))
+mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,14]))
+mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,15]))
+mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,16]))
+mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,17]))
+mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,18]))
+mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,19]))
+mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,20]))
+mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,21]))
+```
+
+#Test and Train on MLB
+#Obtaining a random year to be our testing data to predict MVP shares
+```{r}
+randomYear <- sample(1956:2022,1)
+```
+
+```{r}
+train.data <- subset(MVPMLB, Year!=randomYear)
+testAL.data <- subset(MVPAL, Year==randomYear)
+testNL.data <- subset(MVPNL, Year==randomYear)
+
+MVPAL.lm <- MVPAL
+MVPNL.lm <- MVPNL
+```
+
+#Linear Regression with all statistics 
+```{r}
+MVP.lm.fit <- lm(Share ~WAR+SB+R+H+HR+RBI+BA+OBP, data=train.data)
+```
+
+```{r}
+summary(MVP.lm.fit)
+```
+#VIF Test
+```{r}
+vif(MVP.lm.fit)
+```
+#Predicting AL
+```{r}
+predict(MVP.lm.fit,newdata=testAL.data)
+```
+#Prediciting NL
+```{r}
+predict(MVP.lm.fit,newdata=testNL.data)
+```
+
+```{r}
+MVPAL.lm$predicted <- predict(MVP.lm.fit,newdata=MVPAL)
+MVPNL.lm$predicted <- predict(MVP.lm.fit,newdata=MVPNL)
+
+```
+
+```{r}
+MVPAL.lm.mod <- MVPAL.lm %>%
+  slice_max(predicted,by=c(Year))
+```
+
+```{r}
+MVPNL.lm.mod <- MVPNL.lm %>%
+  slice_max(predicted,by=c(Year))
+```
+
+```{r}
+sum(MVPAL.lm.mod$Winners)
+sum(MVPNL.lm.mod$Winners)
+```
+#Durbin Watson Test for independence
+```{r}
+durbinWatsonTest(MVP.lm.fit)
+```
+
+#Homoscedasticity test with Breusch Pagan Test
+```{r}
+ols_test_breusch_pagan(MVP.lm.fit)
+```
+
+#Running a Q-Q Plot to check the normality
+```{r}
+ggplot() +
+  geom_qq(aes(sample=rstandard(MVP.lm.fit))) +
+  geom_abline(color="red") +
+  coord_fixed()
+```
+
+#Random Forest
+
+```{r}
+set.seed(5231)
+MVPMLB.rf <- MVPMLB
+MVPAL.rf <- MVPAL
+MVPNL.rf <- MVPNL
+
+rf.model <- randomForest(Share ~WAR+SB+R+H+HR+RBI+BA+OBP,data=train.data )
+```
+
+```{r}
+rf.model
+```
+
+```{r}
+which.min(rf.model$mse)
+```
+
+```{r}
+sqrt(rf.model$mse[which.min(rf.model$mse)])
+```
+#The model that produced the lowest test mean square error used 218 tree. We can also see that the rmse of that model was .216. We can think of this as the average difference between the predicted and actual observed
+
+```{r}
+plot(rf.model)
+```
+#creates a plot that displays the importance of each predictor variable
+```{r}
+varImpPlot(rf.model)
+```
+#X axis displays the average increase in node purity of the regression tree on splitting on various predictors
+
+```{r}
+predict(rf.model,newdata=testAL.data)
+```
+#Based on the values of the predict variable , the fitted random forest model predicts that player 37 will have 50.8% of the share votes for MVP. 
+
+```{r}
+predict(rf.model,newdata=testNL.data)
+```
+
+```{r}
+MVPAL.rf$predicted <- predict(rf.model,newdata=MVPAL)
+MVPNL.rf$predicted <- predict(rf.model,newdata=MVPNL)
+
+```
+
+```{r}
+MVPAL.rf.mod <- MVPAL.rf %>%
+  slice_max(predicted,by=c(Year))
+```
+
+```{r}
+MVPNL.rf.mod <- MVPNL.rf %>%
+  slice_max(predicted,by=c(Year))
+```
+
+```{r}
+sum(MVPAL.rf.mod$Winners)
+sum(MVPNL.rf.mod$Winners)
+```
+
+#Lets run Neural Network, Gradient Boosting Machines?
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
