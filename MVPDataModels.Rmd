@@ -15,6 +15,13 @@ library(infotheo)
 library(pls)
 library(ggplot2)
 library(olsrr)
+library(glmnet)
+library(xgboost)
+library(tidymodels)
+library(reticulate)
+library(keras3)
+library(tensorflow)
+library(Metrics)
 ```
 
 ```{r}
@@ -68,19 +75,19 @@ cor(MVPAL[,c('Share','WAR','G','AB','R','H','HR','RBI','SB','BB','BA','OBP','SLG
 ```
 
 ```{r}
-mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,9]))
-mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,10]))
-mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,11]))
-mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,12]))
-mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,13]))
-mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,14]))
-mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,15]))
-mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,16]))
-mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,17]))
-mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,18]))
-mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,19]))
-mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,20]))
-mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,21]))
+#mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,9]))
+#mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,10]))
+#mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,11]))
+#mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,12]))
+#mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,13]))
+#mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,14]))
+#mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,15]))
+#mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,16]))
+#mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,17]))
+#mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,18]))
+#mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,19]))
+#mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,20]))
+#mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,21]))
 ```
 
 #Test and Train on MLB
@@ -91,8 +98,10 @@ randomYear <- sample(1956:2022,1)
 
 ```{r}
 train.data <- subset(MVPMLB, Year!=randomYear)
+test.data <- subset(MVPMLB, Year==randomYear)
 testAL.data <- subset(MVPAL, Year==randomYear)
 testNL.data <- subset(MVPNL, Year==randomYear)
+
 
 MVPAL.lm <- MVPAL
 MVPNL.lm <- MVPNL
@@ -100,7 +109,7 @@ MVPNL.lm <- MVPNL
 
 #Linear Regression with all statistics 
 ```{r}
-MVP.lm.fit <- lm(Share ~WAR+SB+R+H+HR+RBI+BA+OBP, data=train.data)
+MVP.lm.fit <- lm(Share~WAR+SB+R+H+HR+RBI+BA+OBP, data=train.data)
 ```
 
 ```{r}
@@ -165,11 +174,11 @@ MVPMLB.rf <- MVPMLB
 MVPAL.rf <- MVPAL
 MVPNL.rf <- MVPNL
 
-rf.model <- randomForest(Share ~WAR+SB+R+H+HR+RBI+BA+OBP,data=train.data )
+rf.model <- randomForest(Share ~WAR+SB+R+H+HR+RBI+BA+OBP,data=train.data,importance=TRUE )
 ```
 
 ```{r}
-rf.model
+print(rf.model)
 ```
 
 ```{r}
@@ -179,7 +188,7 @@ which.min(rf.model$mse)
 ```{r}
 sqrt(rf.model$mse[which.min(rf.model$mse)])
 ```
-#The model that produced the lowest test mean square error used 218 tree. We can also see that the rmse of that model was .216. We can think of this as the average difference between the predicted and actual observed
+#The model that produced the lowest test mean square error used 495 tree. We can also see that the rmse of that model was .211. We can think of this as the average difference between the predicted and actual observed
 
 ```{r}
 plot(rf.model)
@@ -220,7 +229,432 @@ sum(MVPAL.rf.mod$Winners)
 sum(MVPNL.rf.mod$Winners)
 ```
 
-#Lets run Neural Network, Gradient Boosting Machines?
+
+#Testing RF Accuracy
+
+```{r}
+MVPAL.rf.mod$Predicted_Winners <- 1
+MVPNL.rf.mod$Predicted_Winners <- 1
+
+#MVPAL.rf$Predicted_Winners<- MVPAL.rf.mod$Predicted_Winners
+```
+
+```{r}
+MVPAL.rf$ID <- paste(MVPAL.rf$Name,MVPAL.rf$Year)
+MVPAL.rf.mod$ID <- paste(MVPAL.rf.mod$Name,MVPAL.rf.mod$Year)
+MVPAL.rf.mod<- MVPAL.rf.mod[,c("ID","Predicted_Winners")]
+
+MVPNL.rf$ID <- paste(MVPNL.rf$Name,MVPNL.rf$Year)
+MVPNL.rf.mod$ID <- paste(MVPNL.rf.mod$Name,MVPNL.rf.mod$Year)
+MVPNL.rf.mod<- MVPNL.rf.mod[,c("ID","Predicted_Winners")]
+```
+
+```{r}
+MVPAL.testing <- left_join(MVPAL.rf,MVPAL.rf.mod,by="ID")
+MVPAL.testing$Predicted_Winners <- ifelse(is.na(MVPAL.testing$Predicted_Winners),0,1)
+
+MVPNL.testing <- left_join(MVPNL.rf,MVPNL.rf.mod,by="ID")
+MVPNL.testing$Predicted_Winners <- ifelse(is.na(MVPNL.testing$Predicted_Winners),0,1)
+```
+
+```{r}
+MVPALtable <- table(MVPAL.testing$Winners,MVPAL.testing$Predicted_Winners)
+MVPNLtable <- table(MVPNL.testing$Predicted_Winners,MVPNL.testing$Winners)
+```
+
+```{r}
+MVPMLB.testing <- bind_rows(MVPAL.testing,MVPNL.testing)
+MVPMLBtable <- table(MVPMLB.testing$Winners,MVPMLB.testing$Predicted_Winners)
+
+```
+
+```{r}
+MVPAL.cm <- caret::confusionMatrix(MVPALtable)
+MVPAL.cm
+```
+```{r}
+MVPNL.cm <- caret::confusionMatrix(MVPNLtable)
+MVPNL.cm
+```
+
+```{r}
+MVPMLB.cm <- caret::confusionMatrix(MVPMLBtable)
+MVPMLB.cm
+```
+```{r}
+#tuneGrid <- expand.grid(mtry=c(2,4,6,8,10))
+#rf_model <- train(Share ~WAR+SB+R+H+HR+RBI+BA+OBP,data=test.data,method="rf",tuneGrid=tuneGrid)
+```
+ 
+#Ridge Regression
+#An extension of linear regression where the loss function is modified to minimize the complexity of the model. This modifaction is done by adding a penalty paramater that is equivalent to the square of the magnitude of the coefficients.
+```{r}
+x.ridge <- model.matrix(Share ~WAR+SB+R+H+HR+RBI+BA+OBP,train.data)
+y.ridge <- model.matrix(Share ~WAR+SB+R+H+HR+RBI+BA+OBP,test.data)
+MVPAL.ridge.Pre <- model.matrix(Share ~WAR+SB+R+H+HR+RBI+BA+OBP,MVPAL)
+MVPNL.ridge.Pre <- model.matrix(Share ~WAR+SB+R+H+HR+RBI+BA+OBP,MVPNL)
+
+```
+
+```{r}
+MVP.ridge <- glmnet(x.ridge,train.data$Share,alpha=0)
+
+```
+
+```{r}
+summary(MVP.ridge)
+```
+#Choosing an Optimal Value for Lambda
+#Performing k-fold cross-validation to find optimal lambda
+```{r}
+cv_ridge <- cv.glmnet(x.ridge,train.data$Share)
+```
+
+#find optimal lambda value that minimizes test MSE
+```{r}
+best_lambda.ridge <- cv_ridge$lambda.min
+best_lambda.ridge
+```
+#Creating a plot to test MSE by lambda value
+```{r}
+plot(cv_ridge)
+```
+
+#The Lambda value taht mimimizes the test MSE turns out to be 0.00011
+
+#Analyze Final Model
+```{r}
+ridge.predict = predict(MVP.ridge,s=best_lambda.ridge,newx=y.ridge)
+```
+
+#calculate R-Squared
+#use fitted best model to make predictions
+```{r}
+ridge.mse = mean((ridge.predict-test.data$Share)^2)
+ridge.mse
+```
+
+#FOR US TO LOOK AT LATER, CURRENTLY IT IS GIVING THE PREDICTED FOR MVPMLB, WE NEED TO SWITCH FOR AL AND NL
+
+#Analyze Final Model
+```{r}
+AL.ridge.predict = predict(MVP.ridge,newx=MVPAL.ridge.Pre)
+```
+
+```{r}
+NL.ridge.predict = predict(MVP.ridge,newx=MVPNL.ridge.Pre)
+```
+
+```{r}
+MVPAL.ridge.Final <- MVPAL
+MVPAL.ridge.Final$predicted <- AL.ridge.predict
+```
+
+```{r}
+MVPNL.ridge.Final <- MVPNL
+MVPNL.ridge.Final$predicted <- NL.ridge.predict
+```
+
+```{r}
+MVPAL.ridge.mod <- MVPAL.ridge.Final %>%
+  slice_max(predicted,by=c(Year))
+```
+
+```{r}
+MVPNL.ridge.mod <- MVPNL.ridge.Final %>%
+  slice_max(predicted,by=c(Year))
+```
+
+```{r}
+sum(MVPAL.ridge.mod$Winners)
+sum(MVPNL.ridge.mod$Winners)
+```
+
+#Lasso Regression
+#In Lasso, the loss function is modified to minimize the complexity of the model by limiting the sum of the absolute values of the model coefficients.
+```{r}
+x.lasso <- model.matrix(Share ~WAR+SB+R+H+HR+RBI+BA+OBP,train.data)
+y.lasso <- model.matrix(Share ~WAR+SB+R+H+HR+RBI+BA+OBP,test.data)
+MVPAL.Lasso.Pre <- model.matrix(Share ~WAR+SB+R+H+HR+RBI+BA+OBP,MVPAL)
+MVPNL.Lasso.Pre <- model.matrix(Share ~WAR+SB+R+H+HR+RBI+BA+OBP,MVPNL)
+```
+
+```{r}
+MVP.lasso <- glmnet(x.lasso,train.data$Share,alpha=1)
+```
+
+```{r}
+summary(MVP.lasso)
+```
+#Choosing an Optimal Value for Lambda
+#Performing k-fold cross-validation to find optimal lambda
+```{r}
+cv_lasso <- cv.glmnet(x.lasso,train.data$Share)
+```
+
+#find optimal lambda value that minimizes test MSE
+```{r}
+best_lambda.lasso <- cv_lasso$lambda.min
+best_lambda.lasso
+```
+#Creating a plot to test MSE by lambda value
+```{r}
+plot(cv_lasso)
+```
+
+#The Lambda value taht mimimizes the test MSE turns out to be 0.00089
+
+#Analyze Final Model
+```{r}
+AL.lasso.predict = predict(MVP.lasso,s=best_lambda.lasso,newx=MVPAL.Lasso.Pre)
+```
+
+```{r}
+NL.lasso.predict = predict(MVP.lasso,s=best_lambda.lasso,newx=MVPNL.Lasso.Pre)
+```
+
+```{r}
+MVPAL.lasso.Final <- MVPAL
+MVPAL.lasso.Final$predicted <- AL.lasso.predict
+```
+
+```{r}
+MVPNL.lasso.Final <- MVPNL
+MVPNL.lasso.Final$predicted <- NL.lasso.predict
+```
+
+```{r}
+MVPAL.lasso.mod <- MVPAL.lasso.Final %>%
+  slice_max(predicted,by=c(Year))
+```
+
+```{r}
+MVPNL.lasso.mod <- MVPNL.lasso.Final %>%
+  slice_max(predicted,by=c(Year))
+```
+
+```{r}
+sum(MVPAL.rf.mod$Winners)
+sum(MVPNL.rf.mod$Winners)
+```
+
+#calculate R-Squared
+#use fitted best model to make predictions
+```{r}
+lasso.mse = mean((lasso.predict-test.data$Share)^2)
+lasso.mse
+```
+
+#Neural Networks, Ridge Regression, Lasso Regression, and XGBoost Regression
+
+#XGBoost Regression
+```{r}
+train_x <- data.matrix(train.data[,c("WAR","SB","R","H","HR","RBI","BA","OBP")])
+train_y <- data.matrix(train.data$Share)
+  
+test_x <- data.matrix(test.data[,c("WAR","SB","R","H","HR","RBI","BA","OBP")])
+test_y <- data.matrix(test.data$Share)
+
+xgb_train = xgb.DMatrix(data=train_x,label =train_y)
+xgb_test = xgb.DMatrix(data=test_x,label=test_y)
+```
+
+#Fit the model
+#Define watchlist
+```{r}
+watchlist <- list(train=xgb_train,test=xgb_test)
+```
+
+#fit xgboost model ad dsiplay training and testing data at each round
+```{r}
+xgb.model = xgboost(data = train_x,label=train_y, nround=100, objective = "reg:squarederror")
+
+```
+
+#Model evaluation
+```{r}
+predict.xgb <- predict(xgb.model,test_x)
+```
+
+```{r}
+rmse.xgb <- sqrt(mean((predict.xgb-test_y)^2))
+rmse.xgb
+```
+
+```{r}
+AL.xgb.predict = predict(MVP.lasso,s=best_lambda.lasso,newx=MVPAL.Lasso.Pre)
+```
+
+```{r}
+NL.xgb.predict = predict(MVP.lasso,s=best_lambda.lasso,newx=MVPNL.Lasso.Pre)
+```
+
+```{r}
+predict.xgb
+```
+
+#Neural Networking
+
+```{r}
+train_data.nn <- subset(train.data[,c("Share","WAR","SB","R","H","HR","RBI","BA","OBP")])
+test_data.nn <- subset(test.data[,c("Share","WAR","SB","R","H","HR","RBI","BA","OBP")])
+```
+
+```{r}
+MVP_recipe <-
+  recipe(
+    Share ~ WAR+SB+R+H+HR+RBI+BA+OBP, data =train_data.nn) %>%
+  step_dummy(all_nominal_predictors()) %>%
+  step_center(all_predictors()) %>%
+  step_scale(all_predictors()) %>%
+  prep(training=train.data,retain=TRUE)
+
+```
+
+```{r}
+train_data_baked <- bake(MVP_recipe,new_data = train_data.nn)
+test_data_baked <- bake(MVP_recipe,new_data = test_data.nn)
+
+```
+
+```{r}
+training_features <- array(data=unlist(train_data_baked[,-9]),
+                           dim=c(nrow(train_data_baked  ),ncol(train_data_baked-1)))
+```
+
+```{r}
+training_labels <- array(data=unlist(train_data_baked[,9]),
+                           dim=c(nrow(train_data_baked  ),ncol(train_data_baked)))
+```
+
+```{r}
+test_features <- array(data=unlist(test_data_baked[,-9]),
+                           dim=c(nrow(test_data_baked  ),ncol(test_data_baked)))
+```
+
+```{r}
+test_labels <- array(data=unlist(test_data_baked[,9]),
+                           dim=c(nrow(test_data_baked  ),ncol(test_data_baked)))
+```
+
+#Training Dense feed-forward neural netowrks in Keras
+```{r}
+use_virtualenv("my_tf_workspace")
+```
+
+```{r}
+model_nn <- keras_model_sequential() %>%
+  layer_dense(units=20,input_shape=9,activation="relu") %>%
+  layer_dense(units=10,activation="relu") %>%
+  layer_dense(units=1,activation="sigmoid")
+```
+
+```{r}
+model_nn
+```
+
+```{r}
+compile(model_nn,
+        optimizer="rmsprop",
+        loss="binary_crossentropy",
+        metrics="accuracy")
+```
+
+```{r}
+random_shuffle <- sample(1:nrow(training_features))
+training_features <- training_features[random_shuffle,]
+training_labels <- training_labels[random_shuffle]
+```
+
+```{r}
+history <- fit(model_nn, training_features, training_labels,
+               epochs=250, batch_size=512,validation_split=0.33)
+```
+
+```{r}
+plot(history)
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
 ```{r}
 
 ```

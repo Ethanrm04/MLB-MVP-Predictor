@@ -1,0 +1,170 @@
+---
+title: "LinearRegression"
+author: "Ethan Michaels"
+date: "2024-08-13"
+output: html_document
+---
+```{r}
+library(dplyr)
+library(tidyverse)
+library(randomForest)
+library(caret)
+library(car)
+library(infotheo)
+library(pls)
+library(ggplot2)
+library(olsrr)
+library(glmnet)
+```
+
+```{r}
+MVPMLB <- read.csv("MVPALNLContendersModified.csv", header = TRUE)
+Batting2023 <- read.csv("BattingData2.csv", header = TRUE)
+```
+
+```{r}
+Batting2023$BA <- Batting2023$H/Batting2023$AB
+```
+
+```{r}
+MVPAL <- MVPMLB[MVPMLB$League=="AL",]
+MVPNL <- MVPMLB[MVPMLB$League=="NL",]
+MVPWinners <- MVPMLB[MVPMLB$Winners==1,]
+MVPLosers<- MVPMLB[MVPMLB$Winners==0,]
+```
+
+#Descriptive Statistics 
+```{r}
+teamMVP <- MVPWinners %>% group_by(Tm) %>% count()
+teamContenders <- MVPMLB %>% group_by(Tm) %>% count()
+
+```
+
+```{r}
+summary(MVPNL)
+```
+
+```{r}
+summary(MVPAL)
+
+```
+
+```{r}
+summary(MVPMLB)
+
+```
+```{r}
+summary(MVPWinners)
+```
+
+```{r}
+summary(MVPLosers)
+```
+
+
+#Correlation on Share 
+```{r}
+cor(MVPMLB[,c('Share','WAR','G','AB','R','H','HR','RBI','SB','BB','BA','OBP','SLG','OPS')])
+```
+
+```{r}
+cor(MVPAL[,c('Share','WAR','G','AB','R','H','HR','RBI','SB','BB','BA','OBP','SLG','OPS')])
+```
+
+```{r}
+#mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,9]))
+#mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,10]))
+#mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,11]))
+#mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,12]))
+#mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,13]))
+#mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,14]))
+#mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,15]))
+#mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,16]))
+#mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,17]))
+#mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,18]))
+#mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,19]))
+#mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,20]))
+#mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,21]))
+```
+
+#Test and Train on MLB
+#Obtaining a random year to be our testing data to predict MVP shares
+```{r}
+randomYear <- sample(1956:2022,1)
+```
+
+```{r}
+train.data <- subset(MVPMLB, Year!=randomYear)
+test.data <- subset(MVPMLB, Year==randomYear)
+testAL.data <- subset(MVPAL, Year==randomYear)
+testNL.data <- subset(MVPNL, Year==randomYear)
+
+
+MVPAL.lm <- MVPAL
+MVPNL.lm <- MVPNL
+```
+
+#Linear Regression with all statistics 
+```{r}
+MVP.lm.fit <- lm(Share~WAR+SB+R+H+HR+RBI+BA+OBP, data=train.data)
+```
+
+```{r}
+summary(MVP.lm.fit)
+```
+#VIF Test
+```{r}
+vif(MVP.lm.fit)
+```
+#Predicting AL
+```{r}
+predict(MVP.lm.fit,newdata=testAL.data)
+```
+#Prediciting NL
+```{r}
+predict(MVP.lm.fit,newdata=testNL.data)
+```
+
+```{r}
+MVPAL.lm$predicted <- predict(MVP.lm.fit,newdata=MVPAL)
+MVPNL.lm$predicted <- predict(MVP.lm.fit,newdata=MVPNL)
+
+```
+
+```{r}
+MVPAL.lm.mod <- MVPAL.lm %>%
+  slice_max(predicted,by=c(Year))
+```
+
+```{r}
+MVPNL.lm.mod <- MVPNL.lm %>%
+  slice_max(predicted,by=c(Year))
+```
+
+```{r}
+sum(MVPAL.lm.mod$Winners)
+sum(MVPNL.lm.mod$Winners)
+```
+#Durbin Watson Test for independence
+```{r}
+durbinWatsonTest(MVP.lm.fit)
+```
+
+#Homoscedasticity test with Breusch Pagan Test
+```{r}
+ols_test_breusch_pagan(MVP.lm.fit)
+```
+
+#Running a Q-Q Plot to check the normality
+```{r}
+ggplot() +
+  geom_qq(aes(sample=rstandard(MVP.lm.fit))) +
+  geom_abline(color="red") +
+  coord_fixed()
+```
+#Predicting on 2023 Year
+```{r}
+Batting2023$Predict <-predict(MVP.lm.fit,newdata=Batting2023)
+
+```
+

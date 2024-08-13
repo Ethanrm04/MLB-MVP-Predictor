@@ -1,0 +1,163 @@
+---
+title: "Untitled"
+author: "Ethan Michaels"
+date: "2024-08-08"
+output: pdf_document
+---
+```{r}
+library(dplyr)
+library(randomForest)
+library(caret)
+```
+
+```{r}
+MVPMLB <- read.csv("MVPALNLContendersModified.csv", header = TRUE)
+Batting2023 <- read.csv("BattingData2.csv", header = TRUE)
+```
+
+```{r}
+Batting2023$BA <- Batting2023$H/Batting2023$AB
+```
+
+```{r}
+MVPAL <- MVPMLB[MVPMLB$League=="AL",]
+MVPNL <- MVPMLB[MVPMLB$League=="NL",]
+MVPWinners <- MVPMLB[MVPMLB$Winners==1,]
+MVPLosers<- MVPMLB[MVPMLB$Winners==0,]
+```
+
+#Test and Train on MLB
+#Obtaining a random year to be our testing data to predict MVP shares
+```{r}
+randomYear <- sample(1956:2022,1)
+```
+
+```{r}
+train.data <- subset(MVPMLB, Year!=randomYear)
+test.data <- subset(MVPMLB, Year==randomYear)
+testAL.data <- subset(MVPAL, Year==randomYear)
+testNL.data <- subset(MVPNL, Year==randomYear)
+
+eq1 = Share ~ WAR+SB+R+H+HR+RBI+BA+OBP
+```
+
+```{r}
+control <- trainControl(method ="cv",number=10, search = "grid")
+```
+
+
+```{r}
+tuneGrid <- expand.grid(mtry=c(2,3,4,5,6,7,8))
+```
+
+```{r}
+set.seed(1234)
+```
+
+```{r}
+#rf_model <- train(eq1,
+ #                 data=train.data,
+  #                method="rf",
+   #               trControl=control,
+    #              tuneGrid=tuneGrid)
+
+rf_model <-  randomForest(Share ~WAR+SB+R+H+HR+RBI+BA+OBP,data=train.data,importance=TRUE )
+
+```
+
+```{r}
+print(rf_model)
+```
+
+```{r}
+predictionsAL <- predict(rf_model,newdata=MVPAL)
+predictionsNL <- predict(rf_model,newdata=MVPNL)
+
+```
+
+```{r}
+predictionsAL <- data.frame(predictionsAL)
+predictionsNL <- data.frame(predictionsNL)
+
+```
+
+```{r}
+MVPAL$predicted <- predictionsAL
+MVPNL$predicted <- predictionsNL
+
+```
+
+```{r}
+MVPAL.rf.mod <- MVPAL %>%
+  slice_max(predicted,by=c(Year))
+```
+
+```{r}
+MVPNL.rf.mod <- MVPNL %>%
+  slice_max(predicted,by=c(Year))
+```
+
+```{r}
+MVPAL.rf.mod$Predicted_Winners <- 1
+MVPNL.rf.mod$Predicted_Winners <- 1
+
+#MVPAL.rf$Predicted_Winners<- MVPAL.rf.mod$Predicted_Winners
+```
+
+```{r}
+MVPAL$ID <- paste(MVPAL$Name,MVPAL$Year)
+MVPAL.rf.mod$ID <- paste(MVPAL.rf.mod$Name,MVPAL.rf.mod$Year)
+MVPAL.rf.mod<- MVPAL.rf.mod[,c("ID","Predicted_Winners")]
+
+MVPNL$ID <- paste(MVPNL$Name,MVPNL$Year)
+MVPNL.rf.mod$ID <- paste(MVPNL.rf.mod$Name,MVPNL.rf.mod$Year)
+MVPNL.rf.mod<- MVPNL.rf.mod[,c("ID","Predicted_Winners")]
+```
+
+```{r}
+MVPAL.testing <- left_join(MVPAL,MVPAL.rf.mod,by="ID")
+MVPAL.testing$Predicted_Winners <- ifelse(is.na(MVPAL.testing$Predicted_Winners),0,1)
+
+MVPNL.testing <- left_join(MVPNL,MVPNL.rf.mod,by="ID")
+MVPNL.testing$Predicted_Winners <- ifelse(is.na(MVPNL.testing$Predicted_Winners),0,1)
+```
+
+```{r}
+MVPALtable <- table(MVPAL.testing$Winners,MVPAL.testing$Predicted_Winners)
+MVPNLtable <- table(MVPNL.testing$Predicted_Winners,MVPNL.testing$Winners)
+```
+
+```{r}
+MVPAL.cm <- caret::confusionMatrix(MVPALtable)
+MVPAL.cm
+```
+
+```{r}
+MVPNL.cm <- caret::confusionMatrix(MVPNLtable)
+MVPNL.cm
+```
+
+```{r}
+#MVPMLB.cm <- caret::confusionMatrix(MVPMLBtable)
+#MVPMLB.cm
+```
+
+```{r}
+final_model <- rf_model$finalModel
+```
+
+```{r}
+#new_predictions <-predict(final_model,newdata =Batting2023)
+```
+
+```{r}
+Batting2023$Predictions <- predict(rf_model,newdata=Batting2023)
+```
+
+```{r}
+#Batting2023$Predictions <- sort(Batting2023$Predictions,decreasing = TRUE)
+```
+
+```{r}
+
+```
