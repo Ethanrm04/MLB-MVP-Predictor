@@ -4,21 +4,28 @@ author: "Ethan Michaels"
 date: "2024-08-08"
 output: pdf_document
 ---
+#Installing Librarys
 ```{r}
 library(dplyr)
 library(randomForest)
 library(caret)
 ```
 
+#Reading in the relevant files
 ```{r}
 MVPMLB <- read.csv("MVPALNLContendersModified.csv", header = TRUE)
 Batting2023 <- read.csv("BattingData2.csv", header = TRUE)
+Batting2024 <- read.csv("Batting2024.csv", header = TRUE)
 ```
 
+#Creating the batting average statistic for 2023 data and dividing the 2023 datasets between MLBs Two leagues
 ```{r}
 Batting2023$BA <- Batting2023$H/Batting2023$AB
+Batting2023AL <- subset(Batting2023,League=="AL")
+Batting2023NL <- subset(Batting2023,League=="NL")
 ```
 
+#Creating dataframes for the dataset for years 1956-2022
 ```{r}
 MVPAL <- MVPMLB[MVPMLB$League=="AL",]
 MVPNL <- MVPMLB[MVPMLB$League=="NL",]
@@ -45,7 +52,7 @@ eq1 = Share ~ WAR+SB+R+H+HR+RBI+BA+OBP
 control <- trainControl(method ="cv",number=10, search = "grid")
 ```
 
-
+#Tuning the Grid
 ```{r}
 tuneGrid <- expand.grid(mtry=c(2,3,4,5,6,7,8))
 ```
@@ -54,21 +61,16 @@ tuneGrid <- expand.grid(mtry=c(2,3,4,5,6,7,8))
 set.seed(1234)
 ```
 
+#Running the random forest model
 ```{r}
-#rf_model <- train(eq1,
- #                 data=train.data,
-  #                method="rf",
-   #               trControl=control,
-    #              tuneGrid=tuneGrid)
-
-rf_model <-  randomForest(Share ~WAR+SB+R+H+HR+RBI+BA+OBP,data=train.data,importance=TRUE )
+rf_model <-  randomForest(Share ~WAR+SB+R+H+HR+RBI+BA+OBP,data=train.data,method="rf",trControl=control, tuneGrid=tuneGrid, importance=TRUE )
 
 ```
 
 ```{r}
 print(rf_model)
 ```
-
+#Predicting on each MLB League
 ```{r}
 predictionsAL <- predict(rf_model,newdata=MVPAL)
 predictionsNL <- predict(rf_model,newdata=MVPNL)
@@ -87,6 +89,7 @@ MVPNL$predicted <- predictionsNL
 
 ```
 
+#Splicing the data to only display the predicted winner of each year for AL and NL
 ```{r}
 MVPAL.rf.mod <- MVPAL %>%
   slice_max(predicted,by=c(Year))
@@ -97,6 +100,7 @@ MVPNL.rf.mod <- MVPNL %>%
   slice_max(predicted,by=c(Year))
 ```
 
+#Below is code to be able to run a confusion matrix
 ```{r}
 MVPAL.rf.mod$Predicted_Winners <- 1
 MVPNL.rf.mod$Predicted_Winners <- 1
@@ -104,6 +108,7 @@ MVPNL.rf.mod$Predicted_Winners <- 1
 #MVPAL.rf$Predicted_Winners<- MVPAL.rf.mod$Predicted_Winners
 ```
 
+#Merging datasets together to display predicted winners and actual winners
 ```{r}
 MVPAL$ID <- paste(MVPAL$Name,MVPAL$Year)
 MVPAL.rf.mod$ID <- paste(MVPAL.rf.mod$Name,MVPAL.rf.mod$Year)
@@ -127,6 +132,7 @@ MVPALtable <- table(MVPAL.testing$Winners,MVPAL.testing$Predicted_Winners)
 MVPNLtable <- table(MVPNL.testing$Predicted_Winners,MVPNL.testing$Winners)
 ```
 
+#Creating a confusion matrix for AL and NL
 ```{r}
 MVPAL.cm <- caret::confusionMatrix(MVPALtable)
 MVPAL.cm
@@ -138,25 +144,71 @@ MVPNL.cm
 ```
 
 ```{r}
-#MVPMLB.cm <- caret::confusionMatrix(MVPMLBtable)
-#MVPMLB.cm
-```
-
-```{r}
-final_model <- rf_model$finalModel
-```
-
-```{r}
 #new_predictions <-predict(final_model,newdata =Batting2023)
 ```
 
+#Testing our model on 2023 data 
 ```{r}
 Batting2023$Predictions <- predict(rf_model,newdata=Batting2023)
 ```
 
 ```{r}
-#Batting2023$Predictions <- sort(Batting2023$Predictions,decreasing = TRUE)
+Batting2023 <- Batting2023[order(-Batting2023$Predictions),]
 ```
+
+```{r}
+Batting2023AL$Predictions <- predict(rf_model,newdata=Batting2023AL)
+```
+
+```{r}
+Batting2023AL <- Batting2023AL[order(-Batting2023AL$Predictions),]
+```
+
+```{r}
+Batting2023NL$Predictions <- predict(rf_model,newdata=Batting2023NL)
+```
+
+```{r}
+Batting2023NL <- Batting2023NL[order(-Batting2023NL$Predictions),]
+```
+
+```{r}
+head(Batting2023AL,1)
+
+```
+
+```{r}
+head(Batting2023NL,1)
+
+```
+#For loop to run our model multiple times to see how accurate it is to predicting the actual winner.
+```{r}
+ALPredicted <- data.frame()
+NLPredicted <- data.frame()
+i <- 1
+for (i in 1:10){
+  rf_model <-  randomForest(Share ~WAR+SB+R+H+HR+RBI+BA+OBP,data=train.data,importance=TRUE )
+  Batting2023AL$Predictions <- predict(rf_model,newdata=Batting2023AL)
+  Batting2023AL <- Batting2023AL[order(-Batting2023AL$Predictions),]
+  Batting2023NL$Predictions <- predict(rf_model,newdata=Batting2023NL)
+  Batting2023NL <- Batting2023NL[order(-Batting2023NL$Predictions),]
+  
+  outputAL <-head(Batting2023AL,1)
+  ALPredicted <- rbind(ALPredicted,outputAL)
+  
+  outputNL <-head(Batting2023NL,1)
+  NLPredicted <- rbind(NLPredicted,outputNL)
+  }
+```
+
+```{r}
+ALPredicted
+```
+
+```{r}
+NLPredicted
+```
+
 
 ```{r}
 

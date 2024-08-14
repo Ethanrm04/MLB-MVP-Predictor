@@ -24,6 +24,8 @@ Batting2023 <- read.csv("BattingData2.csv", header = TRUE)
 
 ```{r}
 Batting2023$BA <- Batting2023$H/Batting2023$AB
+Batting2023AL <- subset(Batting2023,League=="AL")
+Batting2023NL <- subset(Batting2023,League=="NL")
 ```
 
 ```{r}
@@ -168,3 +170,33 @@ Batting2023$Predict <-predict(MVP.lm.fit,newdata=Batting2023)
 
 ```
 
+```{r}
+ALPredicted <- data.frame()
+NLPredicted <- data.frame()
+i <- 1
+for (i in 1:10){
+  MVP.lm.fit <- lm(Share~WAR+SB+R+H+HR+RBI+BA+OBP, data=train.data)
+  Batting2023AL$Predictions <- predict(MVP.lm.fit,newdata=Batting2023AL)
+  Batting2023AL <- Batting2023AL[order(-Batting2023AL$Predictions),]
+  Batting2023NL$Predictions <- predict(MVP.lm.fit,newdata=Batting2023NL)
+  Batting2023NL <- Batting2023NL[order(-Batting2023NL$Predictions),]
+  
+  outputAL <-head(Batting2023AL,1)
+  ALPredicted <- rbind(ALPredicted,outputAL)
+  
+  outputNL <-head(Batting2023NL,1)
+  NLPredicted <- rbind(NLPredicted,outputNL)
+}
+```
+
+```{r}
+ALPredicted
+```
+
+```{r}
+NLPredicted
+```
+
+```{r}
+
+```
