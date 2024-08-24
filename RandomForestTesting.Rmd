@@ -45,7 +45,7 @@ test.data <- subset(MVPMLB, Year==randomYear)
 testAL.data <- subset(MVPAL, Year==randomYear)
 testNL.data <- subset(MVPNL, Year==randomYear)
 
-eq1 = Share ~ WAR+SB+R+H+HR+RBI+BA+OBP
+eq1 = Share ~ WAR+SB+H+HR+RBI+BA
 ```
 
 ```{r}
@@ -63,7 +63,7 @@ set.seed(1234)
 
 #Running the random forest model
 ```{r}
-rf_model <-  randomForest(Share ~WAR+SB+R+H+HR+RBI+BA+OBP,data=train.data,method="rf",trControl=control, tuneGrid=tuneGrid, importance=TRUE )
+rf_model <-  randomForest(Share ~WAR+SB+H+HR+RBI+BA+OBP,data=train.data,method="rf",trControl=control, tuneGrid=tuneGrid, importance=TRUE )
 
 ```
 
@@ -77,12 +77,14 @@ predictionsNL <- predict(rf_model,newdata=MVPNL)
 
 ```
 
+#making the predictions into a dataframe
 ```{r}
 predictionsAL <- data.frame(predictionsAL)
 predictionsNL <- data.frame(predictionsNL)
 
 ```
 
+#Inserting the predictions back into the dataset
 ```{r}
 MVPAL$predicted <- predictionsAL
 MVPNL$predicted <- predictionsNL
@@ -127,9 +129,10 @@ MVPNL.testing <- left_join(MVPNL,MVPNL.rf.mod,by="ID")
 MVPNL.testing$Predicted_Winners <- ifelse(is.na(MVPNL.testing$Predicted_Winners),0,1)
 ```
 
+#Making tables of the Predicted Winners and Actual winners to run a confusion matrix on
 ```{r}
 MVPALtable <- table(MVPAL.testing$Winners,MVPAL.testing$Predicted_Winners)
-MVPNLtable <- table(MVPNL.testing$Predicted_Winners,MVPNL.testing$Winners)
+MVPNLtable <- table(MVPNL.testing$Winners,MVPNL.testing$Predicted_Winners)
 ```
 
 #Creating a confusion matrix for AL and NL
@@ -142,9 +145,11 @@ MVPAL.cm
 MVPNL.cm <- caret::confusionMatrix(MVPNLtable)
 MVPNL.cm
 ```
-
+#Finding the RMSE Value of AL and NL
 ```{r}
-#new_predictions <-predict(final_model,newdata =Batting2023)
+mean((MVPAL.testing$Predicted_Winners-MVPAL.testing$Winners)^2)
+mean((MVPNL.testing$Predicted_Winners-MVPNL.testing$Winners)^2)
+
 ```
 
 #Testing our model on 2023 data 
@@ -186,10 +191,11 @@ head(Batting2023NL,1)
 ALPredicted <- data.frame()
 NLPredicted <- data.frame()
 i <- 1
-for (i in 1:10){
-  rf_model <-  randomForest(Share ~WAR+SB+R+H+HR+RBI+BA+OBP,data=train.data,importance=TRUE )
+for (i in 1:100){
+  rf_model <-  randomForest(Share ~WAR+SB+H+HR+RBI+BA+OBP,data=train.data,importance=TRUE )
   Batting2023AL$Predictions <- predict(rf_model,newdata=Batting2023AL)
   Batting2023AL <- Batting2023AL[order(-Batting2023AL$Predictions),]
+  
   Batting2023NL$Predictions <- predict(rf_model,newdata=Batting2023NL)
   Batting2023NL <- Batting2023NL[order(-Batting2023NL$Predictions),]
   
@@ -201,15 +207,66 @@ for (i in 1:10){
   }
 ```
 
+#Displaying the List of AL Winners Predicted
 ```{r}
 ALPredicted
 ```
-
+#Displaying a Table of the occurances of each MVP Winner
+```{r}
+ALPredicted %>%
+  group_by(NAME) %>%
+  summarize(count = n())
+```
+#Displaying the List of NL MVP WInners Predicted
 ```{r}
 NLPredicted
 ```
+#Displaying a Table of the occurances of each MVP Winner
+```{r}
+NLPredicted %>%
+  group_by(NAME) %>%
+  summarize(count = n())
+```
+#Using this years batting stats predicting the future MVP Winners of the AL and NL.
+```{r}
+Batting2024AL <- subset(Batting2024,Lg == "AL")
+Batting2024NL <- subset(Batting2024,Lg == "NL")
 
+ALPredicted24 <- data.frame()
+NLPredicted24 <- data.frame()
+i <- 1
+for (i in 1:100){
+  rf_model <-  randomForest(Share ~WAR+SB+H+HR+RBI+BA+OBP,data=train.data,importance=TRUE )
+  Batting2024AL$Predictions <- predict(rf_model,newdata=Batting2024AL)
+  Batting2024AL <- Batting2024AL[order(-Batting2024AL$Predictions),]
+  Batting2024NL$Predictions <- predict(rf_model,newdata=Batting2024NL)
+  Batting2024NL <- Batting2024NL[order(-Batting2024NL$Predictions),]
+  
+  outputAL24 <-head(Batting2024AL,1)
+  ALPredicted24 <- rbind(ALPredicted24,outputAL24)
+  
+  outputNL24 <-head(Batting2024NL,1)
+  NLPredicted24 <- rbind(NLPredicted24,outputNL24)
+  }
+
+```
 
 ```{r}
+ALPredicted24
+```
 
+```{r}
+ALPredicted24 %>%
+  group_by(Player) %>%
+  summarize(count = n())
+```
+
+```{r}
+NLPredicted24
+```
+
+```{r}
+NLPredicted24 %>%
+  group_by(Player) %>%
+  summarize(count = n())
 ```

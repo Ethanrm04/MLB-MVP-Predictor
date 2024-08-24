@@ -14,7 +14,9 @@ library(infotheo)
 library(pls)
 library(ggplot2)
 library(olsrr)
+library(corrr)
 library(glmnet)
+library(Metrics)
 ```
 
 ```{r}
@@ -74,6 +76,12 @@ cor(MVPAL[,c('Share','WAR','G','AB','R','H','HR','RBI','SB','BB','BA','OBP','SLG
 ```
 
 ```{r}
+MVPMLB %>%
+  correlate() %>%
+  focus(Share)
+```
+
+```{r}
 #mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,9]))
 #mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,10]))
 #mutinformation(discretize(MVPAL[,8]),discretize(MVPAL[,11]))
@@ -108,7 +116,7 @@ MVPNL.lm <- MVPNL
 
 #Linear Regression with all statistics 
 ```{r}
-MVP.lm.fit <- lm(Share~WAR+SB+R+H+HR+RBI+BA+OBP, data=train.data)
+MVP.lm.fit <- lm(Share~WAR+SB+HR+RBI+BA+OBP, data=train.data)
 ```
 
 ```{r}
@@ -147,6 +155,21 @@ MVPNL.lm.mod <- MVPNL.lm %>%
 sum(MVPAL.lm.mod$Winners)
 sum(MVPNL.lm.mod$Winners)
 ```
+```{r}
+MVPMLB.lm.mod <- rbind(MVPAL.lm.mod,MVPNL.lm.mod)
+MVPMLB.lm.mod$Winners <- MVPMLB.lm.mod$Winners.Predicted
+MVPMLB.lm.mod$Winners.Precited <- 1
+
+```
+
+```{r}
+MVPMLB.lm.mod$Winners.Actual <- ifelse(MVPMLB.lm.mod$Rank == 1,1,0)
+```
+
+```{r}
+rmse(MVPMLB.lm.mod$Winners.Actual,MVPMLB.lm.mod$Winners.Precited)
+```
+
 #Durbin Watson Test for independence
 ```{r}
 durbinWatsonTest(MVP.lm.fit)
@@ -170,6 +193,7 @@ Batting2023$Predict <-predict(MVP.lm.fit,newdata=Batting2023)
 
 ```
 
+#For loop to run our model multiple times to see how accurate it is to predicting the actual winner.
 ```{r}
 ALPredicted <- data.frame()
 NLPredicted <- data.frame()
